@@ -53,3 +53,27 @@ SELECT
 from productos as prod left join factura_detalle as fact on prod.sku = fact.fk_autoid_cliente
 left join clientes as cli on fact.fk_autoid_cliente = cli.autoid AND cli.barrio ='Guadalajara'
 where cli.autoid is NULL
+
+--ID de los productos que se han vendido a clientes de Monterrey y que también se han vendido a clientes de Cancún.
+SELECT prod.sku,
+       COALESCE(Monterrey.Cantidad, 0) AS CantidadMonterrey,
+       COALESCE(Cancun.Cantidad, 0) AS CantidadCancun
+FROM productos as prod
+LEFT JOIN (
+    SELECT fact.fk_sku_producto as idproducto, SUM(fact.cantidad_compra) AS Cantidad
+    FROM factura_detalle as fact
+    JOIN clientes as cli ON fact.fk_autoid_cliente = cli.autoid AND cli.barrio = 'Monterrey'
+    GROUP BY idproducto) AS Monterrey ON prod.sku = Monterrey.idproducto
+LEFT JOIN (
+    SELECT fact.fk_sku_producto as idproducto, SUM(fact.cantidad_compra) AS Cantidad
+    FROM factura_detalle as fact
+    JOIN clientes as cli ON fact.fk_autoid_cliente = cli.autoid AND cli.barrio = 'Cancun'
+    GROUP BY idproducto) AS Cancun ON prod.sku = Cancun.idproducto;
+	
+--Nombre de las ciudades en las que se han vendido todos los productos.
+SELECT
+	cli.barrio
+FROM clientes as cli CROSS JOIN productos as prod 
+	LEFT JOIN factura_detalle as fact on cli.autoid = fact.fk_autoid_cliente AND prod.sku = fact.fk_sku_producto
+GROUP BY cli.barrio
+HAVING COUNT(DISTINCT fact.fk_sku_producto) = (SELECT COUNT(DISTINCT sku) FROM productos)
